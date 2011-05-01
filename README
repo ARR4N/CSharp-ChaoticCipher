@@ -18,3 +18,32 @@ This file is part of CSharp-ChaoticCipher (https://github.com/aschlosberg/CSharp
 ---------------------------------------------------------------------------------------
 
 Usage: ./ChaoticCipher.exe (enc|dec) infile outfile
+
+Under correct circumstances, particular non-linear dynamical systems display chaotic behaviour. A characteristic of chaotic behaviour is the sensitivity to initial conditions, i.e. perturbations to the state of the system will, no matter how small, eventually "yield widely diverging outcomes... rendering long-term prediction impossible in general". "Things become worse when the deterministic component is a non-linear feedback system." This can be utilised to generate a deterministic PRNG by reading the least significant bit of a chaotic system after a set number of iterations.
+
+While most explanations concentrate on sensitivity to initial conditions the concept can logically be extended to include sensitivity to minor perturbations (referred to as "nudges" in the code). For example, nudging the primary arm of a double pendulum (see examples link below) will greatly alter the stream of random bits provided by the associated PRNG. A stream of data can be used to nudge the system at each iteration. This cipher utilises 3 main sources for perturbations (each nudge = 1 byte):
+
+* Symmetric encryption key - hashed using SHA512 - 64 nudges
+* Initiliasation vector (IV) - 64 bytes sourced from System.Security.Cryptography.RNGCryptoServiceProvider - 64 nudges
+* Plaintext bytestream - using the same key and IV will still result in a different PRNG stream
+* Identically-initialised, parallel chaotic systems - the least significant bits of one are used to nudge the next - increased feedback
+
+The plaintext byte used for nudging is delayed such that the nudge byte is the one immediately after the one being enc/deciphered. This is a theoretical necessity when in decipher mode to allow the plaintext to be recovered before being used as the nudger for the next iteration.
+
+Use of the plaintext stream creates an implicit authentication scheme in that a change to the ciphertext will result in a change to the derived plaintext and hence a change to the PRNG output. A more explicit MAC is planned by appending a series of zero bytes to the end of the plaintext.
+
+XORing of the PRNG stream with the plain/ciphertext stream provides the relevant output of cipher/plaintext. This allows enc/deciphering to be done with the same function.
+
+For testing and proof-of-concept, a simple Lorenzian water wheel model implements the NonLinearSystem class.
+
+See:
+* http://en.wikipedia.org/wiki/Chaos_theory
+* Examples of chaotic systems - http://en.wikipedia.org/wiki/Chaos_theory#See_also
+* http://en.wikipedia.org/wiki/Stream_cipher
+* http://www.ace.gatech.edu/experiments2/2413/lorenz/fall02/
+
+**********************************
+
+It is important to note that this code simply provides a framework for utilising models of chaotic systems. The security of the resulting stream cipher is determined by the characteristics of the system used.
+
+**********************************
