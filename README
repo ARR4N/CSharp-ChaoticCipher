@@ -17,7 +17,7 @@ This file is part of CSharp-ChaoticCipher (https://github.com/aschlosberg/CSharp
 
 ---------------------------------------------------------------------------------------
 
-Usage: ./ChaoticCipher.exe (enc|dec) infile outfile
+Usage: ./ChaoticCipher.exe (enc|dec) infile outfile [MAClength=64]
 
 Under correct circumstances, particular non-linear dynamical systems display chaotic behaviour. A characteristic of chaotic behaviour is the sensitivity to initial conditions, i.e. perturbations to the state of the system will, no matter how small, eventually "yield widely diverging outcomes... rendering long-term prediction impossible in general". "Things become worse when the deterministic component is a non-linear feedback system." This can be utilised to generate a deterministic PRNG by reading the least significant bit of a chaotic system after a set number of iterations.
 
@@ -30,11 +30,11 @@ While most explanations concentrate on sensitivity to initial conditions the con
 
 The plaintext byte used for nudging is delayed such that the nudge byte is the one immediately after the one being enc/deciphered. This is a theoretical necessity when in decipher mode to allow the plaintext to be recovered before being used as the nudger for the next iteration.
 
-Use of the plaintext stream creates an implicit authentication scheme in that a change to the ciphertext will result in a change to the derived plaintext and hence a change to the PRNG output. A more explicit MAC is planned by appending a series of zero bytes to the end of the plaintext.
+Use of the plaintext stream creates an implicit authentication scheme in that a change to the ciphertext will result in a change to the derived plaintext and hence a change to the PRNG output. An explicit MAC based on this appends a series of (MACLength) null bytes to the end of the plaintext.
 
 XORing of the PRNG stream with the plain/ciphertext stream provides the relevant output of cipher/plaintext. This allows enc/deciphering to be done with the same function.
 
-For testing and proof-of-concept, a simple Lorenzian water wheel model implements the NonLinearSystem class.
+For testing and proof-of-concept, a simple Lorenzian water wheel model implements the NonLinearSystem class. Nudges are used for the filling volume of the relevant bucket.
 
 See:
 * http://en.wikipedia.org/wiki/Chaos_theory

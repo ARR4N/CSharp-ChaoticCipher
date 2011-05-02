@@ -48,8 +48,25 @@ namespace ChaoticCipher
 			FileStream inStream = new FileStream(inFile, FileMode.Open);
 			FileStream outStream = new FileStream(outFile, FileMode.Create);
 			
-			inBuffer = new byte[systems.Length*16];
+			inBuffer = new byte[256];
 			outBuffer = new byte[inBuffer.Length];
+			/*
+			 * N.B. each time the ConvertBuffer function is called
+			 * it causes a slight break in the plainText nudging as
+			 * it treats the buffers as if they are the beginning
+			 * of the stream. A smaller buffer uses less memory
+			 * but also reduces the effect of the plainText on the
+			 * PRNG stream.
+			 */
+			
+			int MACLength;
+			try {
+				MACLength = Math.Max(0, int.Parse(args[3]));
+			}
+			catch(Exception){
+				Console.WriteLine("No MAC length provided. Using default of 64 bytes.");
+				MACLength = 64;
+			}
 			
 			switch(action){
 			case "enc":
@@ -66,7 +83,18 @@ namespace ChaoticCipher
 				
 				outStream.Write(iv, 0, iv.Length);
 				
-				Cipher(inStream, outStream, inBuffer);
+				/*
+				 * ### See note after initialisation of in/outBuffer ###
+				 * Because of the plainText breaks the null byte authentication
+				 * stream had to be concatenated with the inStream so that the
+				 * PRNG output was consistent with the one generated when
+				 * deciphering.
+				 */
+				ConcatStream MACStream = new ConcatStream();
+				MACStream.Push(inStream);
+				MACStream.Push(new MemoryStream(new byte[MACLength]));
+				
+				Cipher(MACStream, outStream, inBuffer);
 				
 				break;
 			case "dec":
@@ -77,40 +105,68 @@ namespace ChaoticCipher
 				
 				Cipher(inStream, outStream, outBuffer);
 				
+				/*
+				 * N.B. if DEciphering is performed with a MACLength
+				 * shorter than that used for ENciphering the integrity
+				 * of the MAC is compromised and may return true even
+				 * if the ciphertext was altered.
+				 */
+				outStream.Seek(-MACLength, SeekOrigin.End);
+				
+				byte[] MACbuffer = new byte[MACLength];
+				outStream.Read(MACbuffer, 0, MACLength);
+				
+				foreach(byte b in MACbuffer){
+					if((int)b > 0){
+						Console.WriteLine("*** ERROR ***");
+						Console.WriteLine("Message authentication failed!");
+						Console.WriteLine("Either you provided the wrong decryption settings or the encrypted message was altered.");
+						return;
+					}
+				}
+				
+				Console.WriteLine("Message authenticated. It is *unlikely* that the encrypted message was altered.");
+				
 				break;
 			};
 		}
 		
-		private static void Cipher(FileStream inStream, FileStream outStream, byte[] plainBuffer){
+		private static void Cipher(Stream inStream, Stream outStream, byte[] plainBuffer){
 			byte[] bKey = System.Text.Encoding.UTF8.GetBytes(key);
 			Pass(new SHA512Managed().ComputeHash(bKey, 0, bKey.Length));
 			
 			Pass(iv);
 			
-			int read, bits, remain, diff;
-			ushort nudge, feedForward = 0;
+			int read;
 			
 			while((read=inStream.Read(inBuffer, 0, inBuffer.Length))!=0){
-				for(int i=0; i<read; i++){
-					bits = 0;
-					for(int j=0; j<systems.Length; j++){
-						diff = i - j - 1;
-						if(diff < 0 || diff >= read){
-							nudge = 0;
-						}
-						else {
-							nudge = plainBuffer[diff];
-						}
-						systems[j].Iterate((ushort) Math.Min((ushort) (nudge + feedForward), ushort.MaxValue));
-						feedForward = systems[j].GetBits();
-						remain = systems.Length - j - 1;
-						if(remain<8){
-							bits += (int) systems[j].GetBits(1) * (int) Math.Pow(2, remain);
-						}
-					}
-					outBuffer[i] = (byte) ((int) inBuffer[i] ^ bits);
-				}
+				ConvertBuffer(read, plainBuffer);
 				outStream.Write(outBuffer, 0, read);
+			}
+		}
+		
+		private static void ConvertBuffer(int len, byte[] plainBuffer){
+			int bits, remain, diff;
+			ushort nudge, feedForward = 0;
+			
+			for(int i=0; i<len; i++){
+				bits = 0;
+				for(int j=0; j<systems.Length; j++){
+					diff = i - j - 1;
+					if(diff < 0 || diff >= len){
+						nudge = 0;
+					}
+					else {
+						nudge = plainBuffer[diff];
+					}
+					systems[j].Iterate((ushort) Math.Min((ushort) (nudge + feedForward), ushort.MaxValue));
+					feedForward = systems[j].GetBits();
+					remain = systems.Length - j - 1;
+					if(remain<8){
+						bits += (int) systems[j].GetBits(1) * (int) Math.Pow(2, remain);
+					}
+				}
+				outBuffer[i] = (byte) ((int) inBuffer[i] ^ bits);
 			}
 		}
 		

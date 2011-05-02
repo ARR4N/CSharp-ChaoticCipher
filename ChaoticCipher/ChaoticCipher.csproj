@@ -39,6 +39,7 @@
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="NonLinearSystem.cs" />
     <Compile Include="WaterWheel.cs" />
+    <Compile Include="ConcatStream.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
