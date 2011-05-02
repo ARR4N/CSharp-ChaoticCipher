@@ -116,6 +116,8 @@ namespace ChaoticCipher
 				byte[] MACbuffer = new byte[MACLength];
 				outStream.Read(MACbuffer, 0, MACLength);
 				
+				outStream.SetLength(outStream.Length - MACLength);
+				
 				foreach(byte b in MACbuffer){
 					if((int)b > 0){
 						Console.WriteLine("*** ERROR ***");
