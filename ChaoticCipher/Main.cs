@@ -155,12 +155,10 @@ namespace ChaoticCipher
 				bits = 0;
 				for(int j=0; j<systems.Length; j++){
 					diff = i - j - 1;
-					if(diff < 0 || diff >= len){
-						nudge = 0;
+					if(diff<0){
+						diff += plainBuffer.Length;
 					}
-					else {
-						nudge = plainBuffer[diff];
-					}
+					nudge = plainBuffer[diff];
 					systems[j].Iterate((ushort) Math.Min((ushort) (nudge + feedForward), ushort.MaxValue));
 					feedForward = systems[j].GetBits();
 					remain = systems.Length - j - 1;
