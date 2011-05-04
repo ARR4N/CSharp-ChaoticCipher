@@ -40,6 +40,7 @@
     <Compile Include="NonLinearSystem.cs" />
     <Compile Include="WaterWheel.cs" />
     <Compile Include="ConcatStream.cs" />
+    <Compile Include="Ball.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

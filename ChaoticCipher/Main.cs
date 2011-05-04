@@ -37,7 +37,7 @@ namespace ChaoticCipher
 			nudges = new byte[systems.Length];
 			
 			for(ushort i=0; i<systems.Length; i++){
-				systems[i] = new WaterWheel();
+				systems[i] = new Ball();
 				nudges[i] = (byte) 0;
 			}
 			
