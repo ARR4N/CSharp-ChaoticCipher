@@ -26,11 +26,17 @@ namespace ChaoticCipher
 	{
 		public abstract void Iterate(ushort nudge);
 		
+		public abstract ulong RandomSource {
+			get;
+		}
+		
 		public ushort GetBits(){
 			return this.GetBits(8);
 		}
 		
-		public abstract ushort GetBits(ushort bits);
+		public ushort GetBits(ushort bits){
+			return (ushort) (this.RandomSource % Math.Pow(2, bits));
+		}
 	}
 }
 

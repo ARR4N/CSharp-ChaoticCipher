@@ -59,8 +59,8 @@ namespace ChaoticCipher
 			this.buckets[toFill].Fill(vol);
 		}
 		
-		public override ushort GetBits(ushort bits){
-			return (ushort) (this.angle % Math.Pow(2, bits));
+		public override ulong RandomSource {
+			get { return this.angle; }
 		}
 		
 		public class Bucket {

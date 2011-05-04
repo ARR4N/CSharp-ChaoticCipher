@@ -58,9 +58,8 @@ namespace ChaoticCipher
 			}
 		}
 		
-		public override ushort GetBits(ushort bits)
-		{
-			return (ushort) (xb % Math.Pow(2, bits));
+		public override ulong RandomSource {
+			get { return (ulong) Math.Abs(xb); }
 		}
 		
 		private void BoundTable(){
