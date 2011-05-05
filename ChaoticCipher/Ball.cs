@@ -39,7 +39,8 @@ namespace ChaoticCipher
 		
 		//sinusoidal amplitude and Hooke's law constant for table
 		ushort A;
-		decimal hooke = 0.1m;
+		decimal hooke = 0.21m, 
+				air = 0.1m;
 		
 		public Ball ()
 		{
@@ -58,12 +59,16 @@ namespace ChaoticCipher
 		
 		public override void Iterate(ushort nudge)
 		{
-			xt += nudge - 127; //nudge is (ushort) byte
+			nudge = (ushort) ((nudge - 127) * A / 256); //nudge is (ushort) byte so centralise it and then scale to be more significant wrt A
+			
+			xt += nudge; 
 			BoundTable();
+			
 			vt -= (long) (hooke * xt);
 			xt += vt;
 			
-			vb -= g;
+			vb += nudge - g;
+			vb = (long) (vb * (1-air));
 			long space = xb < 0 ? long.MaxValue : long.MaxValue - xb;
 
 			if(space < vb){ //hit the roof
