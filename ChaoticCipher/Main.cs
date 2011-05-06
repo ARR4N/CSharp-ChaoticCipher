@@ -21,13 +21,16 @@ This file is part of CSharp-ChaoticCipher (https://github.com/aschlosberg/CSharp
 
 using System;
 using System.IO;
+using System.Security;
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 
 namespace ChaoticCipher
 {
 	class MainClass
 	{
-		private static string action, inFile, outFile, key;
+		private static string action, inFile, outFile;
+		private static SecureString key;
 		private static NonLinearSystem[] systems;
 		private static byte[] nudges, inBuffer, outBuffer, iv = new byte[64];
 		
@@ -73,7 +76,7 @@ namespace ChaoticCipher
 				Console.Write("Key: ");
 				key = ReadBlind();
 				Console.Write("Confirm key: ");
-				if(key!=ReadBlind()){
+				if(!CompareSecureStrings(key, ReadBlind())){
 					Console.WriteLine("Keys do not match");
 					return;
 				}
@@ -134,9 +137,7 @@ namespace ChaoticCipher
 		}
 		
 		private static void Cipher(Stream inStream, Stream outStream, byte[] plainBuffer){
-			byte[] bKey = System.Text.Encoding.UTF8.GetBytes(key);
-			Pass(new SHA512Managed().ComputeHash(bKey, 0, bKey.Length));
-			
+			Pass(HashSecureString(key));
 			Pass(iv);
 			
 			int read;
@@ -189,18 +190,61 @@ namespace ChaoticCipher
 			}
 		}
 		
-		private static String ReadBlind(){
-			String line = "";
+		private static SecureString ReadBlind(){
+			SecureString line = new SecureString();
 			ConsoleKeyInfo c;
 			while(true){
 				c = Console.ReadKey(true);
-				if(c.Key.ToString()=="Enter"){
+				if(c.Key==ConsoleKey.Enter){
 					Console.WriteLine();
 					break;	
 				}
-				line += c.KeyChar;
+				else if(c.Key==ConsoleKey.Backspace){
+					if(line.Length>0){
+						line.RemoveAt(line.Length-1);
+					}
+				}
+				else {
+					line.AppendChar(c.KeyChar);
+				}
 			}
+			line.MakeReadOnly();
 			return line;
+		}
+		
+		private static bool CompareSecureStrings(SecureString s1, SecureString s2)
+		{
+			if(s1.Length!=s2.Length){
+				return false;
+			}
+			
+			IntPtr p1 = IntPtr.Zero;
+			IntPtr p2 = IntPtr.Zero;
+			try {
+				p1 = Marshal.SecureStringToBSTR(s1);
+				p2 = Marshal.SecureStringToBSTR(s2);
+				
+				return Marshal.PtrToStringBSTR(p1)==Marshal.PtrToStringBSTR(p2);
+			}
+			finally {
+				Marshal.ZeroFreeBSTR(p1);
+				Marshal.ZeroFreeBSTR(p2);
+			}
+		}
+		
+		private static byte[] HashSecureString(SecureString s)
+		{
+			IntPtr p = IntPtr.Zero;
+			try {
+				p = Marshal.SecureStringToBSTR(s);
+				
+				string key = Marshal.PtrToStringUni(p);
+				
+				return new SHA512Managed().ComputeHash(System.Text.Encoding.Unicode.GetBytes(key), 0, s.Length);
+			}
+			finally {
+				Marshal.ZeroFreeBSTR(p);
+			}
 		}
 	}
 }
