@@ -172,6 +172,10 @@ namespace ChaoticCipher
 		}
 		
 		private static void Pass(byte[] bytes){
+			Pass(bytes, true);
+		}
+		
+		private static void Pass(byte[] bytes, bool dir){
 			ushort nudge, feedForward = 0;
 			short diff;
 			
@@ -182,7 +186,7 @@ namespace ChaoticCipher
 						nudge = 0;
 					}
 					else {
-						nudge = (ushort) bytes[diff];
+						nudge = (ushort) bytes[dir ? diff : bytes.Length - 1 - diff];
 					}
 					systems[j].Iterate((ushort) Math.Min(nudge + feedForward, ushort.MaxValue));
 					feedForward = systems[j].GetBits();
